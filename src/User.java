@@ -1,11 +1,15 @@
 import java.util.Scanner;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 
 public class User {
     LoginService loginService = new LoginService();
     RegistrationService registrationService = new RegistrationService();
     Scanner scanner = new Scanner(System.in);
 
-    private void choice(){
+    public void choice(){
         System.out.print("Выберите действие:\n1. Войти\n2. Зарегистрироваться\nВаш выбор: ");
         String choiceSign = scanner.nextLine();
 
@@ -77,21 +81,26 @@ public class User {
         System.out.println("\n\n\nДобро пожаловать в меню профиля, " + login + "!");
 
         if (isAdmin) { // Выбор для админа
-            System.out.println("Выберите меню: \n1. Меню Администратора\n2. Меню пользователя\nВыбор: ");
+            System.out.print("Выберите меню: \n1. Меню Администратора\n2. Меню пользователя\nВыбор: ");
 
             int choiceMenus = scanner.nextInt();
             scanner.nextLine();
 
             switch (choiceMenus){
                 case 1 -> { //Меню Администратора
-                    System.out.print("Меню для администратора:\n1. Посмотреть БД\n" +
-                            "2. Сделать запрос в БД\n3. Выход\nВаш выбор: ");
+                    System.out.print("""
+                            \n\nМеню для администратора:
+                            1. Посмотреть БД
+                            2. Сделать запрос в БД
+                            3. Выход
+                            Ваш выбор:\s""");
 
                     int adminChoice = scanner.nextInt();
                     scanner.nextLine();
 
                     switch (adminChoice) {
                         case 1:
+                            System.out.println("\n");
                             viewDatabaseTable();
                             break;
                         case 2:
@@ -106,8 +115,13 @@ public class User {
                     }
                 }
                 case 2 -> { // Меню пользователя в админке
-                    System.out.print("Меню пользователя:\n1. Об аккаунте\n2. Поменять почту\n" +
-                            "3. Поменять пароль\n4. Выход\nВыбор: ");
+                    System.out.print("""
+                            \n\nМеню пользователя:
+                            1. Об аккаунте
+                            2. Поменять почту
+                            3. Поменять пароль
+                            4. Выход
+                            Выбор:\s""");
 
                     int userChoice = scanner.nextInt();
 
@@ -134,8 +148,13 @@ public class User {
                 default -> System.out.println("Ошибка, так получилось!");
             }
         } else { // Меню пользователя без админки
-            System.out.print("Меню пользователя:\n1. Об аккаунте\n2. Поменять почту\n" +
-                    "3. Поменять пароль\n4. Выход\nВыбор: ");
+            System.out.print("""
+                    \n\nМеню пользователя:
+                    1. Об аккаунте
+                    2. Поменять почту
+                    3. Поменять пароль
+                    4. Выход
+                    Выбор:\s""");
 
             int userChoice = scanner.nextInt();
 
@@ -162,6 +181,37 @@ public class User {
     }
 
     private void viewAccountInfo(String login) {
+        try (Connection connection = DatabaseConnection.getConnection()) {
+            String sql = "SELECT * FROM users WHERE login = ?";
+            try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+                preparedStatement.setString(1, login);
+                try (ResultSet resultSet = preparedStatement.executeQuery()) {
+                    if (resultSet.next()) {
+                        String userLogin = resultSet.getString("login");
+                        String userEmail = resultSet.getString("email");
+                        String userPassword = resultSet.getString("password");
+                        String storedSecretKey = resultSet.getString("secret_key");
+
+                        System.out.println("Информация о пользователе:");
+                        System.out.println("Логин: " + userLogin);
+                        System.out.println("Почта: " + userEmail);
+
+                        System.out.print("Введите секретный ключ: ");
+                        String enteredSecretKey = scanner.nextLine();
+
+                        if (enteredSecretKey.equals(storedSecretKey)) {
+                            System.out.println("Пароль: " + userPassword);
+                        } else {
+                            System.out.println("Неверный секретный ключ. Доступ запрещен к паролю.");
+                        }
+                    } else {
+                        System.out.println("Пользователь с логином " + login + " не найден.");
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 
     private void changeEmail(String login) {
@@ -171,13 +221,45 @@ public class User {
     }
 
     private void viewDatabaseTable() {
+        try (Connection connection = DatabaseConnection.getConnection()) {
+            String sql = "SELECT * FROM users";
+
+            try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+                try (ResultSet resultSet = preparedStatement.executeQuery()) {
+
+                    for (int i = 1; i <= resultSet.getMetaData().getColumnCount(); i++) {
+                        System.out.print("+-------------------");
+                    }
+                    System.out.println("+");
+
+                    for (int i = 1; i <= resultSet.getMetaData().getColumnCount(); i++) {
+                        System.out.format("| %-18s", resultSet.getMetaData().getColumnName(i));
+                    }
+                    System.out.println("|");
+
+                    for (int i = 1; i <= resultSet.getMetaData().getColumnCount(); i++) {
+                        System.out.print("+-------------------");
+                    }
+                    System.out.println("+");
+
+                    while (resultSet.next()) {
+                        for (int i = 1; i <= resultSet.getMetaData().getColumnCount(); i++) {
+                            System.out.format("| %-18s", resultSet.getString(i));
+                        }
+                        System.out.println("|");
+                    }
+
+                    for (int i = 1; i <= resultSet.getMetaData().getColumnCount(); i++) {
+                        System.out.print("+-------------------");
+                    }
+                    System.out.println("+");
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 
     private void databaseQueryMenu() {
-    }
-
-
-    public void run(){
-        choice();
     }
 }
