@@ -13,7 +13,7 @@ public class LoginService {
                 preparedStatement.setString(3, password);
 
                 try (ResultSet resultSet = preparedStatement.executeQuery()) {
-                    return resultSet.next(); // Если есть соответствующая запись, возвращаем true
+                    return resultSet.next();
                 }
             }
         } catch (SQLException e) {
@@ -31,7 +31,6 @@ public class LoginService {
 
             try (ResultSet resultSet = preparedStatement.executeQuery()) {
                 if (resultSet.next()) {
-                    // Получаем значение столбца "admin"
                     boolean isAdmin = resultSet.getBoolean("admin");
                     return isAdmin;
                 }
@@ -39,6 +38,6 @@ public class LoginService {
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        return false; // Если не удалось получить данные из базы данных, считаем, что пользователь не является администратором
+        return false;
     }
 }
